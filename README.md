@@ -1,4 +1,4 @@
-# Geometry Learning on Fixed Topologies
+# Learning Geometry on Fixed Topologies for Graph Neural Networks
 
 A research project investigating how learning Riemannian metrics on fixed topological spaces compares to traditional fixed-geometry models in graph neural networks.
 
