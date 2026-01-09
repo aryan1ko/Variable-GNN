@@ -75,3 +75,47 @@ class SyntheticManifoldDataset:
         
         return Data(x=x, edge_index=edge_index, y=y)
 
+
+class RealDatasetLoader:
+    """Loader for real-world datasets."""
+    
+    @staticmethod
+    def load_citation_network(name: str = "cora",
+                              root: str = "data",
+                              normalize_features: bool = True) -> Data:
+        from torch_geometric.datasets import Planetoid
+        
+        dataset = Planetoid(root=root, name=name)
+        data = dataset[0]
+        
+        if normalize_features:
+            data.x = data.x / data.x.sum(1, keepdim=True).clamp(min=1)
+            
+        return data
+    
+    @staticmethod
+    def load_tabular_dataset(name: str = "wine") -> Data:
+        from sklearn.datasets import load_wine, load_breast_cancer
+        
+        if name == "wine":
+            data = load_wine()
+        elif name == "cancer":
+            data = load_breast_cancer()
+        else:
+            raise ValueError(f"Unknown dataset: {name}")
+            
+        X, y = data.data, data.target
+        
+        scaler = StandardScaler()
+        X = scaler.fit_transform(X)
+        
+        n_neighbors = min(10, len(X) // 10)
+        adj = kneighbors_graph(X, n_neighbors=n_neighbors,
+                              mode='connectivity', include_self=False)
+        
+        edge_index = torch.tensor(np.array(adj.nonzero()), dtype=torch.long)
+        x = torch.tensor(X, dtype=torch.float32)
+        y = torch.tensor(y, dtype=torch.long)
+        
+        return Data(x=x, edge_index=edge_index, y=y)
+
