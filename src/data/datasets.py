@@ -46,3 +46,32 @@ class SyntheticManifoldDataset:
         
         return Data(x=x, edge_index=edge_index, y=y)
     
+    @staticmethod
+    def sphere(n_samples: int = 1000,
+               radius: float = 1.0,
+               n_neighbors: int = 15) -> Data:
+        phi = np.random.uniform(0, 2*np.pi, n_samples)
+        costheta = np.random.uniform(-1, 1, n_samples)
+        theta = np.arccos(costheta)
+        
+        x = radius * np.sin(theta) * np.cos(phi)
+        y = radius * np.sin(theta) * np.sin(phi)
+        z = radius * np.cos(theta)
+        
+        X = np.column_stack([x, y, z])
+        
+        labels = np.zeros(n_samples, dtype=int)
+        labels[(x > 0) & (y > 0)] = 0
+        labels[(x < 0) & (y > 0)] = 1
+        labels[(x < 0) & (y < 0)] = 2
+        labels[(x > 0) & (y < 0)] = 3
+        
+        adj = kneighbors_graph(X, n_neighbors=n_neighbors,
+                              mode='connectivity', include_self=False)
+        
+        edge_index = torch.tensor(np.array(adj.nonzero()), dtype=torch.long)
+        x = torch.tensor(X, dtype=torch.float32)
+        y = torch.tensor(labels, dtype=torch.long)
+        
+        return Data(x=x, edge_index=edge_index, y=y)
+
