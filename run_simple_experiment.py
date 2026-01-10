@@ -69,3 +69,69 @@ def run_simple_experiment():
     
     results = {}
     
+    # Train and evaluate each model
+    for model_name, model in models.items():
+        print(f"\n Training {model_name}...")
+        model = model.to(device)
+        
+        train_accs, val_accs = [], []
+        
+        # Setup optimizer
+        if model_name == 'learnable_metric':
+            optimizer = torch.optim.Adam([
+                {'params': model.layers.parameters(), 'lr': config['lr']},
+                {'params': [model.edge_weights], 'lr': config['geometry_lr']}
+            ])
+        else:
+            optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
+        
+        criterion = nn.CrossEntropyLoss()
+        
+        # Training loop
+        for epoch in range(config['epochs']):
+            model.train()
+            optimizer.zero_grad()
+            
+            out = model(data.x, data.edge_index)
+            loss = criterion(out[data.train_mask], data.y[data.train_mask])
+            
+            # Add regularization for learnable metric
+            if model_name == 'learnable_metric':
+                reg_loss = model.geometric_regularization(config['reg_type'], data.edge_index)
+                loss = loss + config['geometry_weight'] * reg_loss
+            
+            loss.backward()
+            optimizer.step()
+            
+            # Evaluate
+            model.eval()
+            with torch.no_grad():
+                out = model(data.x, data.edge_index)
+                train_pred = out[data.train_mask].argmax(dim=1)
+                val_pred = out[data.val_mask].argmax(dim=1)
+                
+                train_acc = (train_pred == data.y[data.train_mask]).float().mean()
+                val_acc = (val_pred == data.y[data.val_mask]).float().mean()
+            
+            train_accs.append(train_acc.item())
+            val_accs.append(val_acc.item())
+            
+            if epoch % 10 == 0:
+                print(f"  Epoch {epoch}: Train Acc={train_acc:.3f}, Val Acc={val_acc:.3f}")
+        
+        # Final test evaluation
+        with torch.no_grad():
+            out = model(data.x, data.edge_index)
+            test_pred = out[data.test_mask].argmax(dim=1)
+            test_acc = (test_pred == data.y[data.test_mask]).float().mean()
+        
+        results[model_name] = {
+            'train_accs': train_accs,
+            'val_accs': val_accs,
+            'test_acc': test_acc.item(),
+            'final_train_acc': train_accs[-1],
+            'final_val_acc': val_accs[-1]
+        }
+        
+        print(f"  Final Test Accuracy: {test_acc:.3f}")
+   
