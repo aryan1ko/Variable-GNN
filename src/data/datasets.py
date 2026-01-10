@@ -119,3 +119,30 @@ class RealDatasetLoader:
         
         return Data(x=x, edge_index=edge_index, y=y)
 
+
+def create_data_splits(data: Data,
+                       train_ratio: float = 0.6,
+                       val_ratio: float = 0.2,
+                       test_ratio: float = 0.2,
+                       seed: int = 42) -> Data:
+    assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-6
+    
+    n_nodes = data.num_nodes
+    indices = torch.randperm(n_nodes, generator=torch.Generator().manual_seed(seed))
+    
+    train_end = int(train_ratio * n_nodes)
+    val_end = train_end + int(val_ratio * n_nodes)
+    
+    train_mask = torch.zeros(n_nodes, dtype=torch.bool)
+    val_mask = torch.zeros(n_nodes, dtype=torch.bool)
+    test_mask = torch.zeros(n_nodes, dtype=torch.bool)
+    
+    train_mask[indices[:train_end]] = True
+    val_mask[indices[train_end:val_end]] = True
+    test_mask[indices[val_end:]] = True
+    
+    data.train_mask = train_mask
+    data.val_mask = val_mask
+    data.test_mask = test_mask
+    
+    return data
