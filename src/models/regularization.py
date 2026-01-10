@@ -46,3 +46,65 @@ def curvature_regularization(edge_weights: torch.Tensor,
     else:
         raise ValueError(f"Unknown curvature method: {method}")
 
+
+def smoothness_regularization(edge_weights: torch.Tensor,
+                             edge_index: torch.Tensor,
+                             order: int = 1) -> torch.Tensor:
+    """Encourage smooth variation of metrics across the graph."""
+    src, dst = edge_index
+    
+    if order == 1:
+        # First-order smoothness
+        diff = edge_weights[src] - edge_weights[dst]
+        return torch.mean(diff ** 2)
+    elif order == 2:
+        # Second-order smoothness (Laplacian)
+        w = edge_weights
+        src_degrees = torch.bincount(src, minlength=w.size(0)).float()
+        dst_degrees = torch.bincount(dst, minlength=w.size(0)).float()
+        
+        laplacian = w[src] * (1/src_degrees[src] + 1/dst_degrees[dst])
+        return torch.mean(laplacian ** 2)
+    
+    else:
+        raise ValueError(f"Unsupported smoothness order: {order}")
+
+
+def volume_regularization(edge_weights: torch.Tensor,
+                         method: str = "log") -> torch.Tensor:
+    """Control the total 'volume' of the metric."""
+    if method == "log":
+        # Penalize deviation from log-normal distribution
+        return torch.mean(torch.log(edge_weights + 1e-8) ** 2)
+    
+    elif method == "l2":
+        # Simple L2 regularization on weights
+        return torch.mean(edge_weights ** 2)
+    
+    elif method == "entropy":
+        # Shannon entropy regularization
+        w_norm = edge_weights / (edge_weights.sum() + 1e-8)
+        entropy = -torch.sum(w_norm * torch.log(w_norm + 1e-8))
+        return entropy
+    
+    else:
+        raise ValueError(f"Unknown volume method: {method}")
+
+
+def deviation_regularization(current_weights: torch.Tensor,
+                           initial_weights: torch.Tensor,
+                           method: str = "l2") -> torch.Tensor:
+    """Penalize deviation from initial metric."""
+    if method == "l2":
+        return torch.mean((current_weights - initial_weights) ** 2)
+    
+    elif method == "relative":
+        rel_diff = (current_weights - initial_weights) / (initial_weights + 1e-8)
+        return torch.mean(rel_diff ** 2)
+    
+    elif method == "log_ratio":
+        log_ratio = torch.log(current_weights / (initial_weights + 1e-8))
+        return torch.mean(log_ratio ** 2)
+    
+    else:
+        raise ValueError(f"Unknown deviation method: {method}")
