@@ -134,4 +134,70 @@ def run_simple_experiment():
         }
         
         print(f"  Final Test Accuracy: {test_acc:.3f}")
-   
+    
+    # Create output directory
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = Path(f"results/simple_experiment_{timestamp}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Save results
+    with open(output_dir / "results.json", "w") as f:
+        json.dump(results, f, indent=2)
+    
+    # Generate plots
+    print("\n Generating plots...")
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    
+    # Plot 1: Training curves
+    colors = {'fixed_geometry': 'blue', 'learnable_metric': 'green', 'frozen_metric': 'red'}
+    for model_name in models.keys():
+        axes[0].plot(results[model_name]['train_accs'], 
+                    label=model_name, color=colors[model_name], alpha=0.8)
+    axes[0].set_xlabel('Epoch')
+    axes[0].set_ylabel('Accuracy')
+    axes[0].set_title('Training Accuracy')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+    
+    # Plot 2: Validation curves
+    for model_name in models.keys():
+        axes[1].plot(results[model_name]['val_accs'], 
+                    label=model_name, color=colors[model_name], alpha=0.8)
+    axes[1].set_xlabel('Epoch')
+    axes[1].set_ylabel('Accuracy')
+    axes[1].set_title('Validation Accuracy')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+    
+    # Plot 3: Test accuracy comparison
+    model_names = list(models.keys())
+    test_accs = [results[name]['test_acc'] for name in model_names]
+    
+    x = np.arange(len(model_names))
+    axes[2].bar(x, test_accs, color=[colors[name] for name in model_names], alpha=0.8)
+    axes[2].set_xticks(x)
+    axes[2].set_xticklabels([name.replace('_', '\n') for name in model_names])
+    axes[2].set_ylabel('Accuracy')
+    axes[2].set_title('Test Accuracy Comparison')
+    axes[2].grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    plt.savefig(output_dir / "results_plot.png", dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Print summary
+    print("\n" + "=" * 60)
+    print(" RESULTS SUMMARY")
+    print("=" * 60)
+    for model_name in models.keys():
+        acc = results[model_name]['test_acc']
+        print(f"{model_name:20s}: {acc:.3f}")
+    
+    print(f"\n Results saved to: {output_dir}")
+    print("=" * 60)
+    
+    return results
+
+
+if __name__ == "__main__":
+    run_simple_experiment()
