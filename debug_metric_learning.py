@@ -123,6 +123,55 @@ def train_model(model, data, optimizer, criterion, name, device, reg_weight=0.0,
     
     return history
 
+def plot_comparison(results):
+    """Plot comparison of different regularization strengths."""
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    
+    # Plot 1: Training accuracy
+    for reg_weight, history in results.items():
+        axes[0, 0].plot(history['train_acc'], 
+                       label=f'λ={reg_weight}', 
+                       alpha=0.8, linewidth=2)
+    axes[0, 0].set_xlabel('Epoch')
+    axes[0, 0].set_ylabel('Accuracy')
+    axes[0, 0].set_title('Training Accuracy vs Regularization')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # Plot 2: Test accuracy
+    for reg_weight, history in results.items():
+        axes[0, 1].plot(history['test_acc'], 
+                       label=f'λ={reg_weight}', 
+                       alpha=0.8, linewidth=2)
+    axes[0, 1].set_xlabel('Epoch')
+    axes[0, 1].set_ylabel('Accuracy')
+    axes[0, 1].set_title('Test Accuracy vs Regularization')
+    axes[0, 1].legend()
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # Plot 3: Final test accuracy vs regularization
+    reg_weights = list(results.keys())
+    final_test_accs = [history['test_acc'][-1] for history in results.values()]
+    
+    axes[1, 0].plot(reg_weights, final_test_accs, 'o-', linewidth=2, markersize=8)
+    axes[1, 0].set_xlabel('Regularization Weight (λ)')
+    axes[1, 0].set_ylabel('Final Test Accuracy')
+    axes[1, 0].set_title('Optimal Regularization Weight')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # Plot 4: Overfitting gap (train - test)
+    overfitting_gaps = [history['train_acc'][-1] - history['test_acc'][-1] 
+                       for history in results.values()]
+    
+    axes[1, 1].plot(reg_weights, overfitting_gaps, 's-', linewidth=2, markersize=8)
+    axes[1, 1].set_xlabel('Regularization Weight (λ)')
+    axes[1, 1].set_ylabel('Overfitting Gap (Train - Test)')
+    axes[1, 1].set_title('Overfitting vs Regularization')
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('debug_regularization_effect.png', dpi=150, bbox_inches='tight')
+    plt.show()
 
 if __name__ == "__main__":
     analyze_metric_behavior()
