@@ -85,6 +85,44 @@ def analyze_metric_behavior():
     
     return results
 
+def train_model(model, data, optimizer, criterion, name, device, reg_weight=0.0, epochs=50):
+    """Train a model and return history."""
+    history = {'train_acc': [], 'val_acc': [], 'test_acc': []}
+    
+    for epoch in range(epochs):
+        model.train()
+        optimizer.zero_grad()
+        
+        out = model(data.x, data.edge_index)
+        loss = criterion(out[data.train_mask], data.y[data.train_mask])
+        
+        # Add regularization for learnable metric
+        if hasattr(model, 'geometric_regularization'):
+            reg_loss = model.geometric_regularization('deviation', data.edge_index)
+            loss = loss + reg_weight * reg_loss
+        
+        loss.backward()
+        optimizer.step()
+        
+        # Evaluate
+        model.eval()
+        with torch.no_grad():
+            out = model(data.x, data.edge_index)
+            
+            for mask_name, mask in [('train', data.train_mask), 
+                                   ('val', data.val_mask), 
+                                   ('test', data.test_mask)]:
+                pred = out[mask].argmax(dim=1)
+                acc = (pred == data.y[mask]).float().mean()
+                history[f'{mask_name}_acc'].append(acc.item())
+    
+    # Print final accuracies
+    print(f"     Final - Train: {history['train_acc'][-1]:.3f}, "
+          f"Val: {history['val_acc'][-1]:.3f}, "
+          f"Test: {history['test_acc'][-1]:.3f}")
+    
+    return history
+
 
 if __name__ == "__main__":
     analyze_metric_behavior()
