@@ -128,6 +128,91 @@ def train_and_evaluate(model_type, data, device, reg_weight=0.1, epochs=5000):
     
     return acc.item()
 
+def plot_analysis_results(results, noise_levels, n_neighbors_list):
+    """Plot analysis results."""
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    
+    # Plot 1: Noise vs Accuracy
+    fixed_accs = [results['noise'][n]['fixed'] for n in noise_levels]
+    learnable_accs = [results['noise'][n]['learnable'] for n in noise_levels]
+    
+    axes[0, 0].plot(noise_levels, fixed_accs, 'o-', label='Fixed', linewidth=2)
+    axes[0, 0].plot(noise_levels, learnable_accs, 's-', label='Learnable', linewidth=2)
+    axes[0, 0].set_xlabel('Noise Level')
+    axes[0, 0].set_ylabel('Test Accuracy')
+    axes[0, 0].set_title('Effect of Noise on Performance')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # Plot 2: Noise vs Improvement
+    improvements = [results['noise'][n]['improvement'] for n in noise_levels]
+    
+    axes[0, 1].plot(noise_levels, improvements, 'o-', linewidth=2, color='purple')
+    axes[0, 1].axhline(y=0, color='red', linestyle='--', alpha=0.5)
+    axes[0, 1].set_xlabel('Noise Level')
+    axes[0, 1].set_ylabel('Improvement (Learnable - Fixed)')
+    axes[0, 1].set_title('When Does Geometry Learning Help?')
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # Fill area where improvement > 0
+    x = np.array(noise_levels)
+    y = np.array(improvements)
+    axes[0, 1].fill_between(x, y, where=y>0, color='green', alpha=0.3)
+    axes[0, 1].fill_between(x, y, where=y<0, color='red', alpha=0.3)
+    
+    # Plot 3: Connectivity vs Accuracy
+    fixed_accs_c = [results['connectivity'][n]['fixed'] for n in n_neighbors_list]
+    learnable_accs_c = [results['connectivity'][n]['learnable'] for n in n_neighbors_list]
+    
+    axes[1, 0].plot(n_neighbors_list, fixed_accs_c, 'o-', label='Fixed', linewidth=2)
+    axes[1, 0].plot(n_neighbors_list, learnable_accs_c, 's-', label='Learnable', linewidth=2)
+    axes[1, 0].set_xlabel('Number of Neighbors')
+    axes[1, 0].set_ylabel('Test Accuracy')
+    axes[1, 0].set_title('Effect of Graph Connectivity')
+    axes[1, 0].legend()
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # Plot 4: Connectivity vs Improvement
+    improvements_c = [results['connectivity'][n]['improvement'] for n in n_neighbors_list]
+    
+    axes[1, 1].plot(n_neighbors_list, improvements_c, 'o-', linewidth=2, color='purple')
+    axes[1, 1].axhline(y=0, color='red', linestyle='--', alpha=0.5)
+    axes[1, 1].set_xlabel('Number of Neighbors')
+    axes[1, 1].set_ylabel('Improvement (Learnable - Fixed)')
+    axes[1, 1].set_title('Optimal Connectivity for Geometry Learning')
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    # Fill area where improvement > 0
+    x = np.array(n_neighbors_list)
+    y = np.array(improvements_c)
+    axes[1, 1].fill_between(x, y, where=y>0, color='green', alpha=0.3)
+    axes[1, 1].fill_between(x, y, where=y<0, color='red', alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('when_geometry_helps.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Print summary
+    print("\n" + "=" * 60)
+    print("📈 KEY FINDINGS")
+    print("=" * 60)
+    
+    # Find conditions where learnable helps
+    helping_noise = [n for n in noise_levels if results['noise'][n]['improvement'] > 0]
+    hurting_noise = [n for n in noise_levels if results['noise'][n]['improvement'] < 0]
+    
+    if helping_noise:
+        print(f"✅ Geometry learning HELPS with noise levels: {helping_noise}")
+    if hurting_noise:
+        print(f"⚠️  Geometry learning HURTS with noise levels: {hurting_noise}")
+    
+    helping_conn = [n for n in n_neighbors_list if results['connectivity'][n]['improvement'] > 0]
+    hurting_conn = [n for n in n_neighbors_list if results['connectivity'][n]['improvement'] < 0]
+    
+    if helping_conn:
+        print(f"✅ Geometry learning HELPS with connectivity: {helping_conn} neighbors")
+    if hurting_conn:
+        print(f"⚠️  Geometry learning HURTS with connectivity: {hurting_conn} neighbors")
 
 if __name__ == "__main__":
     analyze_dataset_difficulty()
