@@ -2,6 +2,9 @@
 
 This repository implements a novel paradigm for machine learning that optimizes the Riemannian geometry of model space while preserving topological structure. Rather than searching for optimal parameters within a fixed Euclidean space, we treat the metric tensor field itself as a learnable quantity, enabling the parameter space to adapt its geometric properties during training.
 
+<img width="1492" height="489" alt="Screenshot 2026-01-09 at 10 56 41 PM" src="https://github.com/user-attachments/assets/0dc000d8-c692-4255-b486-fefe8b17b6f0" />
+<img width="1499" height="901" alt="Screenshot 2026-01-07 at 1 57 39 PM" src="https://github.com/user-attachments/assets/52534ad7-df61-432e-803e-e3922c79f6cc" />
+
 
 ## Research Question
 
@@ -196,22 +199,6 @@ Preliminary findings indicate:
    - Smoothness penalties prevent pathological local distortions
    - Hyperparameter selection significantly affects performance
 
-Detailed results and statistical analysis are provided in the paper.
-
----
-
-## Testing
-
-```bash
-python tests/run_tests.py
-```
-
-Test suite covers:
-- Forward and backward passes
-- Metric tensor updates
-- Regularization correctness
-- Numerical stability
-- Training loop integrity
 
 ---
 
